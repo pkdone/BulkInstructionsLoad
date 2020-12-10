@@ -1,0 +1,58 @@
+
+
+// Aggregation to see instruction count + payments balanced
+
+db.instructions.aggregate([
+    {$group: {
+        _id: null, 
+        instructions_count: {$sum: 1},
+        payments_balanced: {$sum: '$amount'},
+    }}, 
+    {$unset: '_id'},
+]);
+
+
+
+
+// Query payments for a batch id
+
+db.instructions.find({batch_id: 50})
+db.instructions.find({batch_id: 60}).count()
+
+
+
+// Query payments for a batch id and file id
+
+db.instructions.find({file_id: 123456789, batch_id: 5})
+db.instructions.find({file_id: 123456789, batch_id: 50}).count()
+
+
+
+
+// Query payments for a batch id and file id BUT ONLY IF FILE HAS BEEN FULLY PROCESSED
+
+var file_id = 123456789;
+var batch_id = 5;
+
+db.instructions.aggregate([
+    {$match: {
+        file_id: 123456789,
+        batch_id: batch_id,
+    }},     
+    {$lookup: {
+      from: 'files_processed',
+      localField: 'file_id',
+      foreignField: 'file_id',
+      as: 'processed_records'
+    }},    
+    {$match: {
+        'processed_records.0': {'$exists': true},
+    }},   
+    {$unset:
+        'processed_records'
+    },
+]);
+
+ 
+ 
+
